@@ -31,7 +31,7 @@ const resources = [
     title: '5-4-3-2-1 Grounding',
     description: 'Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste. This grounds you in the present moment.',
     action: 'Practice now',
-    link: '#',
+    link: '/grounding',
   },
   {
     icon: BookOpenCheck,
