@@ -1,9 +1,38 @@
 import { NextResponse } from 'next/server';
 import { globalStore } from '@/lib/store';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
+  // 1. Check in-memory store
+  let alert = globalStore.latestCrisis;
+
+  // 2. If memory store has no active alert, check Supabase DB as fallback
+  if (!alert) {
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from('interventions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (data) {
+        alert = {
+          severityLevel: data.ai_severity_score || 'medium',
+          transcript: data.raw_transcript,
+          patientScript: data.ai_identified_trigger,
+          caregiverAdvice: 'Provide calm, non-judgmental support. Encourage grounding techniques and check in regularly.',
+          timestamp: data.created_at,
+        };
+      }
+    } catch {
+      // Ignore DB errors in GET fallback
+    }
+  }
+
   return NextResponse.json({ 
-    alert: globalStore.latestCrisis,
+    alert: alert?.resolved ? null : alert,
     caregiverResponse: globalStore.caregiverResponse 
   });
 }
@@ -29,6 +58,7 @@ export async function POST(req: Request) {
       if (globalStore.latestCrisis) {
         globalStore.latestCrisis.resolved = true;
       }
+      globalStore.latestCrisis = null;
       return NextResponse.json({ success: true, message: 'Alert marked as resolved' });
     }
 
