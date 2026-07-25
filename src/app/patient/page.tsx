@@ -218,7 +218,7 @@ export default function PatientDashboard() {
 
             {/* RESULT: AI response */}
             {stage === 'result' && crisisPlan && (
-              <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <Card className="bg-indigo-50 border-indigo-200 dark:bg-indigo-950 dark:border-indigo-800">
                   <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
                     <Heart className="w-12 h-12 text-indigo-500" />
@@ -227,12 +227,35 @@ export default function PatientDashboard() {
                     </p>
                   </CardContent>
                 </Card>
-                <Button variant="outline" className="w-full" onClick={handleReRecord}>
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Start Over
-                </Button>
+
+                {/* Next steps */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">What would you like to do next?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <a href="/journal">
+                      <Button variant="outline" className="w-full border-2 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300">
+                        📓 View My Journal
+                      </Button>
+                    </a>
+                    <a href="/resources">
+                      <Button variant="outline" className="w-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300">
+                        📚 Resources
+                      </Button>
+                    </a>
+                  </div>
+                  <a href="tel:18006624357" className="block">
+                    <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
+                      📞 Call SAMHSA Helpline (Free, 24/7)
+                    </Button>
+                  </a>
+                  <Button variant="outline" className="w-full text-slate-500" onClick={handleReRecord}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Start Over
+                  </Button>
+                </div>
               </div>
             )}
+
 
           </CardContent>
         </Card>
