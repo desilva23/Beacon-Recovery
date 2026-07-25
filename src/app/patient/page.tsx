@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Mic, Square, AlertCircle, Heart, RotateCcw, Pencil, Volume2, PhoneCall, Check } from 'lucide-react';
@@ -20,15 +20,20 @@ export default function PatientDashboard() {
   const [caregiverMessage, setCaregiverMessage] = useState<string | null>(null);
   const [patientAcked, setPatientAcked] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const correctionRecRef = useRef<any>(null);
+  const correctionRecRef = useRef<SpeechRecognition | null>(null);
 
-  const speakText = (text: string) => {
+  const speakText = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       window.speechSynthesis.speak(utterance);
     }
-  };
+  }, []);
+
+  // Use a ref so the polling closure always reads the latest message
+  // without the interval being torn down and recreated on every update.
+  const caregiverMessageRef = useRef<string | null>(null);
+  caregiverMessageRef.current = caregiverMessage;
 
   // Poll for caregiver messages
   useEffect(() => {
@@ -36,20 +41,22 @@ export default function PatientDashboard() {
       try {
         const res = await fetch('/api/caregiver/alerts');
         const data = await res.json();
-        const msg = data.alert?.caregiverMessage || data.caregiverResponse?.message;
-        if (msg && msg !== caregiverMessage) {
+        const msg: string | undefined =
+          data.alert?.caregiverMessage ?? data.caregiverResponse?.message;
+        if (msg && msg !== caregiverMessageRef.current) {
           setCaregiverMessage(msg);
           speakText(`Message from your caregiver: ${msg}`);
         }
       } catch (e) {
-        console.error(e);
+        console.error('Caregiver poll error:', e);
       }
     };
 
     checkCaregiverMessage();
-    const interval = setInterval(checkCaregiverMessage, 3000);
+    const interval = setInterval(checkCaregiverMessage, 4000);
     return () => clearInterval(interval);
-  }, [caregiverMessage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speakText]);
 
   const handlePatientAck = async () => {
     setPatientAcked(true);
@@ -85,13 +92,17 @@ export default function PatientDashboard() {
     setCorrectionListening(true);
     setStage('correcting');
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const rec = new SpeechRecognition();
+    type SpeechRecognitionCtor = new () => SpeechRecognition;
+    const SpeechRecognitionAPI: SpeechRecognitionCtor | undefined =
+      (window as unknown as Record<string, SpeechRecognitionCtor | undefined>).SpeechRecognition ??
+      (window as unknown as Record<string, SpeechRecognitionCtor | undefined>).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) return;
+    const rec = new SpeechRecognitionAPI();
     rec.continuous = false;
     rec.interimResults = false;
     correctionRecRef.current = rec;
 
-    rec.onresult = (event: any) => {
+    rec.onresult = (event: SpeechRecognitionEvent) => {
       const corrected = event.results[0][0].transcript;
       setCorrectionTranscript(corrected);
     };
