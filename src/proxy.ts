@@ -24,15 +24,29 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+  const pathname = request.nextUrl.pathname;
 
-  const protectedPaths = ['/patient', '/caregiver'];
-  const isProtected = protectedPaths.some(path =>
-    request.nextUrl.pathname.startsWith(path)
-  );
-
-  if (isProtected && !user) {
+  // Not logged in → redirect to login
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // Role-based access control
+  const role = user.user_metadata?.role ?? 'patient';
+
+  if (role === 'patient' && pathname.startsWith('/caregiver')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/patient';
+    url.searchParams.set('blocked', '1');
+    return NextResponse.redirect(url);
+  }
+
+  if (role === 'caregiver' && pathname.startsWith('/patient')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/caregiver';
+    url.searchParams.set('blocked', '1');
     return NextResponse.redirect(url);
   }
 
@@ -40,5 +54,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/patient/:path*', '/caregiver/:path*'],
+  matcher: ['/patient/:path*', '/caregiver/:path*', '/journal/:path*'],
 };

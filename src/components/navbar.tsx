@@ -1,21 +1,37 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { HeartPulse, ShieldCheck, BookOpen, BookOpenCheck, Home, LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-const navItems = [
+const patientNav = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/patient', label: 'SOS', icon: HeartPulse },
-  { href: '/caregiver', label: 'Caregiver', icon: ShieldCheck },
   { href: '/journal', label: 'Journal', icon: BookOpen },
+  { href: '/resources', label: 'Resources', icon: BookOpenCheck },
+];
+
+const caregiverNav = [
+  { href: '/', label: 'Home', icon: Home },
+  { href: '/caregiver', label: 'Dashboard', icon: ShieldCheck },
   { href: '/resources', label: 'Resources', icon: BookOpenCheck },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [role, setRole] = useState<string | null>(null);
   const isAuthPage = pathname === '/login' || pathname === '/register';
+
+  useEffect(() => {
+    if (isAuthPage) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setRole(user?.user_metadata?.role ?? 'patient');
+    });
+  }, [isAuthPage]);
+
   if (isAuthPage) return null;
 
   const handleSignOut = async () => {
@@ -24,6 +40,8 @@ export function Navbar() {
     router.push('/login');
     router.refresh();
   };
+
+  const navItems = role === 'caregiver' ? caregiverNav : patientNav;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t-2 border-slate-100 dark:border-slate-800 shadow-lg">
@@ -45,7 +63,6 @@ export function Navbar() {
             </Link>
           );
         })}
-        {/* Sign Out */}
         <button
           onClick={handleSignOut}
           className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[52px] text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
