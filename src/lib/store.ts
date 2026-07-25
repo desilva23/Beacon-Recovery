@@ -1,3 +1,4 @@
-export const globalStore: { latestCrisis: any } = {
-  latestCrisis: null
+export const globalStore: { latestCrisis: any; caregiverResponse: any } = {
+  latestCrisis: null,
+  caregiverResponse: null,
 };

@@ -17,8 +17,30 @@ export default function PatientDashboard() {
   const [selectionInfo, setSelectionInfo] = useState<{ start: number; end: number } | null>(null);
   const [correctionListening, setCorrectionListening] = useState(false);
   const [correctionTranscript, setCorrectionTranscript] = useState('');
+  const [caregiverMessage, setCaregiverMessage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const correctionRecRef = useRef<any>(null);
+
+  // Poll for caregiver messages
+  useEffect(() => {
+    const checkCaregiverMessage = async () => {
+      try {
+        const res = await fetch('/api/caregiver/alerts');
+        const data = await res.json();
+        if (data.alert?.caregiverMessage) {
+          setCaregiverMessage(data.alert.caregiverMessage);
+        } else if (data.caregiverResponse?.message) {
+          setCaregiverMessage(data.caregiverResponse.message);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    checkCaregiverMessage();
+    const interval = setInterval(checkCaregiverMessage, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleStop = () => {
     stopListening();
@@ -215,6 +237,23 @@ export default function PatientDashboard() {
 
             {/* PROCESSING: breath pacer */}
             {stage === 'processing' && <BreathPacer isVisible={true} />}
+
+            {/* Caregiver Live Message Banner */}
+            {caregiverMessage && (
+              <Card className="w-full bg-emerald-50 border-2 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-700 animate-in fade-in slide-in-from-top-2">
+                <CardContent className="p-4 flex items-start space-x-3">
+                  <span className="text-2xl">💌</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-1">
+                      Message from your Caregiver
+                    </p>
+                    <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 italic">
+                      "{caregiverMessage}"
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* RESULT: AI response */}
             {stage === 'result' && crisisPlan && (
