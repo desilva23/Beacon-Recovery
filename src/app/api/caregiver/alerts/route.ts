@@ -2,11 +2,16 @@ import { NextResponse } from 'next/server';
 import { globalStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/caregiver/alerts
+ * Fetches current active alert from memory or Supabase fallback.
+ * Implements Cache-Control headers for maximum route efficiency.
+ */
 export async function GET() {
-  // 1. Check in-memory store
   let alert = globalStore.latestCrisis;
 
-  // 2. If memory store has no active alert, check Supabase DB as fallback
   if (!alert) {
     try {
       const supabase = await createClient();
@@ -31,12 +36,23 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ 
-    alert: alert?.resolved ? null : alert,
-    caregiverResponse: globalStore.caregiverResponse 
-  });
+  return NextResponse.json(
+    { 
+      alert: alert?.resolved ? null : alert,
+      caregiverResponse: globalStore.caregiverResponse 
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0, must-revalidate',
+      },
+    }
+  );
 }
 
+/**
+ * POST /api/caregiver/alerts
+ * Handles caregiver responses (messages to patient) and resolving alerts.
+ */
 export async function POST(req: Request) {
   try {
     const body = await req.json();

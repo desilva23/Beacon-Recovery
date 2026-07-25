@@ -6,6 +6,12 @@ const config: Config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  collectCoverageFrom: [
+    'src/lib/**/*.ts',
+    'src/app/api/**/*.ts',
+    '!**/node_modules/**',
+  ],
+  coverageDirectory: 'coverage',
 };
 
 export default config;

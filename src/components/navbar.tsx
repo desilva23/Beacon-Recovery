@@ -44,7 +44,10 @@ export function Navbar() {
   const navItems = role === 'caregiver' ? caregiverNav : patientNav;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t-2 border-slate-100 dark:border-slate-800 shadow-lg">
+    <nav 
+      aria-label="Main Navigation"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t-2 border-slate-100 dark:border-slate-800 shadow-lg"
+    >
       <div className="max-w-2xl mx-auto flex items-center justify-around px-2 py-2">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href;
@@ -52,27 +55,29 @@ export function Navbar() {
             <Link
               key={href}
               href={href}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[52px] ${
                 isActive
                   ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50'
                   : 'text-slate-500 dark:text-slate-400 hover:text-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : ''}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : ''}`} aria-hidden="true" />
               <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>{label}</span>
             </Link>
           );
         })}
         <button
           onClick={handleSignOut}
+          aria-label="Sign out of account"
           className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[52px] text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
           title="Sign out"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-5 h-5" aria-hidden="true" />
           <span className="text-xs font-medium">Sign Out</span>
         </button>
       </div>
     </nav>
   );
 }
-

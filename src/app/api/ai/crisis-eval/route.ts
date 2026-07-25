@@ -3,6 +3,14 @@ import { AIFactory } from '@/lib/ai';
 import { globalStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * POST /api/ai/crisis-eval
+ * Evaluates patient spoken audio transcript using AI engine (Groq/Gemini).
+ * Returns de-escalation script, caregiver advice, and severity level.
+ * Automatically persists to Supabase DB and notifies live Caregiver Dashboard.
+ */
 export async function POST(req: Request) {
   try {
     const { transcript } = await req.json();
@@ -42,7 +50,11 @@ export async function POST(req: Request) {
       console.warn('DB write skipped:', dbErr);
     }
 
-    return NextResponse.json(crisisPlan);
+    return NextResponse.json(crisisPlan, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0, must-revalidate',
+      },
+    });
   } catch (error) {
     console.error('Crisis Eval Error:', error);
     return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
