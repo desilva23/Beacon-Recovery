@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/ai/crisis-eval
- * Evaluates patient spoken audio transcript using AI engine (Groq/Gemini).
+ * Evaluates patient spoken audio transcript using AI engine (Groq).
  * Returns de-escalation script, caregiver advice, and severity level.
  * Automatically persists to Supabase DB and notifies live Caregiver Dashboard.
  */

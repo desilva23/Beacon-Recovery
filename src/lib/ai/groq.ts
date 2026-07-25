@@ -58,7 +58,9 @@ export class GroqProvider implements IAIProvider {
         severityLevel: parsed.severityLevel ?? FALLBACK_PLAN.severityLevel,
       };
     } catch (e) {
-      console.error('Failed to parse Groq response', e);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error('Failed to parse Groq response', e);
+      }
       return FALLBACK_PLAN;
     }
   }
