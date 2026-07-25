@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Mic, MicOff } from 'lucide-react';
 
 const steps = [
   {
@@ -74,6 +74,8 @@ export default function GroundingPage() {
   const [answers, setAnswers] = useState<string[][]>(steps.map(() => []));
   const [input, setInput] = useState('');
   const [done, setDone] = useState(false);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const voiceRecRef = useRef<any>(null);
 
   const step = steps[currentStep];
   const currentAnswers = answers[currentStep];
@@ -91,6 +93,30 @@ export default function GroundingPage() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') addAnswer();
+  };
+
+  const startVoiceInput = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const rec = new SpeechRecognition();
+    rec.continuous = false;
+    rec.interimResults = false;
+    voiceRecRef.current = rec;
+
+    rec.onresult = (event: any) => {
+      const spoken = event.results[0][0].transcript;
+      setInput(spoken);
+    };
+    rec.onend = () => setIsVoiceRecording(false);
+    rec.onerror = () => setIsVoiceRecording(false);
+
+    rec.start();
+    setIsVoiceRecording(true);
+  };
+
+  const stopVoiceInput = () => {
+    voiceRecRef.current?.stop();
+    setIsVoiceRecording(false);
   };
 
   const nextStep = () => {
@@ -194,26 +220,47 @@ export default function GroundingPage() {
                   ))}
                 </div>
 
-                {/* Input */}
+                {/* Input — type OR speak */}
                 {!isStepComplete && (
-                  <div className="flex gap-2">
-                    <input
-                      value={input}
-                      onChange={e => setInput(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder={`${step.prompt} (${currentAnswers.length + 1}/${step.count})`}
-                      className="flex-1 px-3 py-2 rounded-lg border-2 border-current/30 bg-white/60 dark:bg-black/20 text-sm focus:outline-none focus:border-current/60"
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      onClick={addAnswer}
-                      className={`${buttonColorMap[step.color]} text-white px-4`}
-                    >
-                      Add
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={isVoiceRecording ? 'Listening…' : `${step.prompt} (${currentAnswers.length + 1}/${step.count})`}
+                        className="flex-1 px-3 py-2 rounded-lg border-2 border-current/30 bg-white/60 dark:bg-black/20 text-sm focus:outline-none focus:border-current/60"
+                        autoFocus
+                        readOnly={isVoiceRecording}
+                      />
+                      {/* Mic button */}
+                      <button
+                        type="button"
+                        onClick={isVoiceRecording ? stopVoiceInput : startVoiceInput}
+                        className={`flex items-center justify-center w-10 h-10 rounded-lg border-2 transition-colors shrink-0 ${
+                          isVoiceRecording
+                            ? 'border-red-400 bg-red-50 text-red-600 animate-pulse dark:bg-red-950/30'
+                            : 'border-current/30 bg-white/60 dark:bg-black/20 opacity-70 hover:opacity-100'
+                        }`}
+                        title={isVoiceRecording ? 'Stop recording' : 'Speak your answer'}
+                      >
+                        {isVoiceRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      </button>
+                      <Button
+                        size="sm"
+                        onClick={addAnswer}
+                        disabled={!input.trim()}
+                        className={`${buttonColorMap[step.color]} text-white px-4`}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <p className="text-xs opacity-50 text-center">
+                      {isVoiceRecording ? '🎤 Recording… tap mic to stop' : 'Type your answer or tap 🎤 to speak it'}
+                    </p>
                   </div>
                 )}
+
 
                 {isStepComplete && (
                   <Button
