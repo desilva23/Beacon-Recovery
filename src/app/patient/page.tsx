@@ -20,7 +20,7 @@ export default function PatientDashboard() {
   const [caregiverMessage, setCaregiverMessage] = useState<string | null>(null);
   const [patientAcked, setPatientAcked] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const correctionRecRef = useRef<SpeechRecognition | null>(null);
+  const correctionRecRef = useRef<any>(null);
 
   const speakText = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
@@ -92,7 +92,7 @@ export default function PatientDashboard() {
     setCorrectionListening(true);
     setStage('correcting');
 
-    type SpeechRecognitionCtor = new () => SpeechRecognition;
+    type SpeechRecognitionCtor = new () => any;
     const SpeechRecognitionAPI: SpeechRecognitionCtor | undefined =
       (window as unknown as Record<string, SpeechRecognitionCtor | undefined>).SpeechRecognition ??
       (window as unknown as Record<string, SpeechRecognitionCtor | undefined>).webkitSpeechRecognition;
@@ -102,7 +102,7 @@ export default function PatientDashboard() {
     rec.interimResults = false;
     correctionRecRef.current = rec;
 
-    rec.onresult = (event: SpeechRecognitionEvent) => {
+    rec.onresult = (event: any) => {
       const corrected = event.results[0][0].transcript;
       setCorrectionTranscript(corrected);
     };
