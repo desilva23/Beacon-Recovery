@@ -51,7 +51,7 @@ export async function GET() {
 
 /**
  * POST /api/caregiver/alerts
- * Handles caregiver responses (messages to patient) and resolving alerts.
+ * Handles caregiver responses, patient acknowledgments, and alert resolution.
  */
 export async function POST(req: Request) {
   try {
@@ -70,11 +70,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'Message sent to patient' });
     }
 
+    if (action === 'patient_ack') {
+      if (globalStore.latestCrisis) {
+        globalStore.latestCrisis.patientSafeAck = true;
+      }
+      if (globalStore.caregiverResponse) {
+        globalStore.caregiverResponse.patientSafeAck = true;
+      }
+      return NextResponse.json({ success: true, message: 'Patient safe acknowledgment received' });
+    }
+
     if (action === 'resolve') {
       if (globalStore.latestCrisis) {
         globalStore.latestCrisis.resolved = true;
       }
       globalStore.latestCrisis = null;
+      globalStore.caregiverResponse = null;
       return NextResponse.json({ success: true, message: 'Alert marked as resolved' });
     }
 

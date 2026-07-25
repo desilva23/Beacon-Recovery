@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2, Clock, Send, Heart, ShieldCheck, MessageSquare } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Send, Heart, ShieldCheck, MessageSquare, Volume2, Mic, MicOff } from 'lucide-react';
 
 const quickMessages = [
   "I'm on my way to be with you right now.",
@@ -16,6 +16,41 @@ export default function CaregiverDashboard() {
   const [customMessage, setCustomMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sentStatus, setSentStatus] = useState<string | null>(null);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const voiceRecRef = useRef<any>(null);
+
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const startVoiceInput = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const rec = new SpeechRecognition();
+    rec.continuous = false;
+    rec.interimResults = false;
+    voiceRecRef.current = rec;
+
+    rec.onresult = (event: any) => {
+      const spoken = event.results[0][0].transcript;
+      setCustomMessage(spoken);
+    };
+    rec.onend = () => setIsVoiceRecording(false);
+    rec.onerror = () => setIsVoiceRecording(false);
+
+    rec.start();
+    setIsVoiceRecording(true);
+  };
+
+  const stopVoiceInput = () => {
+    voiceRecRef.current?.stop();
+    setIsVoiceRecording(false);
+  };
+
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -118,8 +153,13 @@ export default function CaregiverDashboard() {
                       <CardTitle className="text-xl capitalize flex items-center gap-2">
                         {alert.severityLevel} Priority Alert
                         {alert.caregiverAcknowledged && (
-                          <span className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded-full font-normal">
+                          <span className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 rounded-full font-normal">
                             Acknowledged
+                          </span>
+                        )}
+                        {alert.patientSafeAck && (
+                          <span className="text-xs bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                            <Heart className="w-3 h-3 fill-pink-500 text-pink-500" /> Patient Confirmed Safe
                           </span>
                         )}
                       </CardTitle>
@@ -137,8 +177,18 @@ export default function CaregiverDashboard() {
 
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Patient Audio Context:</h3>
-                  <div className="p-4 bg-white/60 dark:bg-black/20 rounded-md italic border-l-4 border-slate-300">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-slate-700 dark:text-slate-300">Patient Audio Context:</h3>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => speakText(alert.transcript)}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 mr-1" /> Listen to Audio
+                    </Button>
+                  </div>
+                  <div className="p-4 bg-white/60 dark:bg-black/20 rounded-md italic border-l-4 border-indigo-400">
                     "{alert.transcript}"
                   </div>
                 </div>
@@ -173,27 +223,47 @@ export default function CaregiverDashboard() {
                     ))}
                   </div>
 
-                  {/* Custom message input */}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={customMessage}
-                      onChange={e => setCustomMessage(e.target.value)}
-                      placeholder="Type a custom message of support..."
-                      className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
-                      onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                    />
-                    <Button
-                      onClick={() => handleSendMessage()}
-                      disabled={sending || !customMessage.trim()}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Send
-                    </Button>
+                  {/* Custom message input with voice option */}
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customMessage}
+                        onChange={e => setCustomMessage(e.target.value)}
+                        placeholder={isVoiceRecording ? 'Listening for caregiver voice…' : 'Type or speak a custom message…'}
+                        className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
+                        onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                        readOnly={isVoiceRecording}
+                      />
+                      {/* Voice Mic Button */}
+                      <button
+                        type="button"
+                        onClick={isVoiceRecording ? stopVoiceInput : startVoiceInput}
+                        className={`flex items-center justify-center w-10 h-10 rounded-lg border-2 transition-colors shrink-0 ${
+                          isVoiceRecording
+                            ? 'border-red-400 bg-red-50 text-red-600 animate-pulse dark:bg-red-950/30'
+                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:text-indigo-600'
+                        }`}
+                        title={isVoiceRecording ? 'Stop recording' : 'Speak your encouragement'}
+                      >
+                        {isVoiceRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      </button>
+                      <Button
+                        onClick={() => handleSendMessage()}
+                        disabled={sending || !customMessage.trim()}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Send
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 text-center">
+                      {isVoiceRecording ? '🎤 Recording voice encouragement…' : 'Type your message or tap 🎤 to speak it'}
+                    </p>
                   </div>
                 </div>
               </CardContent>
+
             </Card>
           </div>
         )}

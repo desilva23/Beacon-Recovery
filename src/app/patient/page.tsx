@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Mic, Square, AlertCircle, Heart, RotateCcw, Pencil } from 'lucide-react';
+import { Mic, Square, AlertCircle, Heart, RotateCcw, Pencil, Volume2, PhoneCall, Check } from 'lucide-react';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { BreathPacer } from '@/components/coping/breath-pacer';
 import type { CrisisPlan } from '@/lib/ai';
@@ -18,8 +18,17 @@ export default function PatientDashboard() {
   const [correctionListening, setCorrectionListening] = useState(false);
   const [correctionTranscript, setCorrectionTranscript] = useState('');
   const [caregiverMessage, setCaregiverMessage] = useState<string | null>(null);
+  const [patientAcked, setPatientAcked] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const correctionRecRef = useRef<any>(null);
+
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   // Poll for caregiver messages
   useEffect(() => {
@@ -27,10 +36,10 @@ export default function PatientDashboard() {
       try {
         const res = await fetch('/api/caregiver/alerts');
         const data = await res.json();
-        if (data.alert?.caregiverMessage) {
-          setCaregiverMessage(data.alert.caregiverMessage);
-        } else if (data.caregiverResponse?.message) {
-          setCaregiverMessage(data.caregiverResponse.message);
+        const msg = data.alert?.caregiverMessage || data.caregiverResponse?.message;
+        if (msg && msg !== caregiverMessage) {
+          setCaregiverMessage(msg);
+          speakText(`Message from your caregiver: ${msg}`);
         }
       } catch (e) {
         console.error(e);
@@ -40,7 +49,21 @@ export default function PatientDashboard() {
     checkCaregiverMessage();
     const interval = setInterval(checkCaregiverMessage, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [caregiverMessage]);
+
+  const handlePatientAck = async () => {
+    setPatientAcked(true);
+    try {
+      await fetch('/api/caregiver/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'patient_ack' }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
 
   const handleStop = () => {
     stopListening();
@@ -241,19 +264,49 @@ export default function PatientDashboard() {
             {/* Caregiver Live Message Banner */}
             {caregiverMessage && (
               <Card className="w-full bg-emerald-50 border-2 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-700 animate-in fade-in slide-in-from-top-2">
-                <CardContent className="p-4 flex items-start space-x-3">
-                  <span className="text-2xl">💌</span>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-1">
-                      Message from your Caregiver
-                    </p>
-                    <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 italic">
-                      "{caregiverMessage}"
-                    </p>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3">
+                      <span className="text-2xl">💌</span>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-1">
+                          Message from your Caregiver
+                        </p>
+                        <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 italic">
+                          "{caregiverMessage}"
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => speakText(`Message from your caregiver: ${caregiverMessage}`)}
+                      className="text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 shrink-0"
+                      title="Listen to message"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    {patientAcked ? (
+                      <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900 px-3 py-1 rounded-full">
+                        <Check className="w-3.5 h-3.5" /> Sent "I'm Safe" to Caregiver
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handlePatientAck}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3"
+                      >
+                        ❤️ Send "I'm Safe" to Caregiver
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             )}
+
 
             {/* RESULT: AI response */}
             {stage === 'result' && crisisPlan && (
