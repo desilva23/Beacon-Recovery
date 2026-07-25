@@ -1,49 +1,27 @@
 import { AIFactory } from '@/lib/ai';
 
 describe('AIFactory - Provider Selection', () => {
-  it('should return a provider for groq', () => {
-    const provider = AIFactory.getProvider('groq');
-    expect(provider).toBeDefined();
-    expect(typeof provider.evaluateCrisis).toBe('function');
-  });
-
-  it('should return a provider for gemini', () => {
-    const provider = AIFactory.getProvider('gemini');
-    expect(provider).toBeDefined();
-    expect(typeof provider.evaluateCrisis).toBe('function');
-  });
-
-  it('should throw an error for unsupported providers', () => {
-    expect(() => AIFactory.getProvider('unsupported' as any)).toThrow('Unsupported AI provider');
-  });
-
-  it('should default to groq when no argument is provided', () => {
+  it('should return a provider', () => {
     const provider = AIFactory.getProvider();
     expect(provider).toBeDefined();
     expect(typeof provider.evaluateCrisis).toBe('function');
   });
 
   it('should return a new instance each call (no stale state)', () => {
-    const p1 = AIFactory.getProvider('groq');
-    const p2 = AIFactory.getProvider('groq');
+    const p1 = AIFactory.getProvider();
+    const p2 = AIFactory.getProvider();
     expect(p1).not.toBe(p2);
   });
 });
 
 describe('AIFactory - Provider Interface Compliance', () => {
-  it('groq provider should have evaluateCrisis method', () => {
-    const provider = AIFactory.getProvider('groq');
-    expect(provider.evaluateCrisis).toBeInstanceOf(Function);
-  });
-
-  it('gemini provider should have evaluateCrisis method', () => {
-    const provider = AIFactory.getProvider('gemini');
+  it('provider should have evaluateCrisis method', () => {
+    const provider = AIFactory.getProvider();
     expect(provider.evaluateCrisis).toBeInstanceOf(Function);
   });
 
   it('evaluateCrisis should return a promise', () => {
-    // Mock the actual API call so it doesn't hit external services
-    const provider = AIFactory.getProvider('groq');
+    const provider = AIFactory.getProvider();
     const spy = jest.spyOn(provider, 'evaluateCrisis').mockResolvedValue({
       patientScript: 'mock script',
       caregiverAdvice: 'mock advice',

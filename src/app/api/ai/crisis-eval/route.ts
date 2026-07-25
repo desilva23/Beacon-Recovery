@@ -19,10 +19,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Transcript is required' }, { status: 400 });
     }
 
-    const providerHeader = req.headers.get('x-ai-provider');
-    const providerName = providerHeader === 'gemini' ? 'gemini' : 'groq';
-
-    const provider = AIFactory.getProvider(providerName);
+    const provider = AIFactory.getProvider();
     const crisisPlan = await provider.evaluateCrisis(transcript);
 
     // Save to global memory store for caregiver dashboard real-time polling
