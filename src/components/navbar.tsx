@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { HeartPulse, ShieldCheck, BookOpen, BookOpenCheck, Home } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { HeartPulse, ShieldCheck, BookOpen, BookOpenCheck, Home, LogOut } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
@@ -13,8 +14,16 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const isAuthPage = pathname === '/login' || pathname === '/register';
   if (isAuthPage) return null;
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t-2 border-slate-100 dark:border-slate-800 shadow-lg">
@@ -25,7 +34,7 @@ export function Navbar() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[60px] ${
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[52px] ${
                 isActive
                   ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50'
                   : 'text-slate-500 dark:text-slate-400 hover:text-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -36,7 +45,17 @@ export function Navbar() {
             </Link>
           );
         })}
+        {/* Sign Out */}
+        <button
+          onClick={handleSignOut}
+          className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[52px] text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+          title="Sign out"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="text-xs font-medium">Sign Out</span>
+        </button>
       </div>
     </nav>
   );
 }
+
