@@ -21,7 +21,7 @@ Return JSON matching this exact structure:
 }`;
 
     const response = await this.ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -29,7 +29,7 @@ Return JSON matching this exact structure:
     });
 
     try {
-      const text = response.text;
+      const text = response.text || '{}';
       return JSON.parse(text) as CrisisPlan;
     } catch (e) {
       console.error("Failed to parse Gemini response", e);
